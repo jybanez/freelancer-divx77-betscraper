@@ -21,14 +21,23 @@ var BetController = new Class({
 		],
 		templates:{
 			commonSport:'<div class="padded font bold">{sport}</div>'
-				+'<div class="padded">'
-					+'<div class="btn secondary rounded block viewLeagues">'
 						+'<div class="padded">'
-							+'<div>View Leagues</div>'
+							+'<div class="btn secondary rounded block viewLeagues">'
+								+'<div class="padded">'
+									+'<div>View Leagues</div>'
+								+'</div>'
+							+'</div>'
 						+'</div>'
-					+'</div>'
-				+'</div>'
-				,
+						,
+			commonLeague:'<div class="padded">'
+							+'<div class="font bold">{league}</div>'
+							+'<ul class="fieldList spaced fixed separated leagueList font small"></ul>'
+						+'</div>'
+						,
+			leagueList:'<div class="">{group}</div>'
+						+'<div class="width_100">'
+							+'<div class="btn secondary rounded block viewEvents"><div>Load Events</div></div>'
+						+'</div>',
 			site:'<div class="padded">'
 					+'<div class="font bold">{name}</div>'
 					+'<div>{link}</div>'
@@ -47,18 +56,37 @@ var BetController = new Class({
 		var canvasList = container.getElement('.canvasList');
 		this.scanActions(container);
 		
-		this.$commonSportList = container.getElement('.commonSportList');
+		this.containers = new TPH.ContentContainer(null,{
+			onCreate:function(containerName,el){
+				switch(containerName){
+					case 'sports':
+						this.$commonSportList = el.getElement('.commonSportList');
+						break;
+					case 'leagues':
+						this.$commonLeagueList = el.getElement('.commonLeagueList');
+						break;
+				}
+			}.bind(this),
+			onSelect:function(containerName,instance){
+				$fullHeight(instance.getContainer(containerName).getParent());
+			}.bind(this)
+		});
+		
+		
 		
 		this.$ably = new Ably.Realtime(this.options.ablyKey);
 		this.options.sites.each(function(site){
 			var el = new Element('div',{
 				'class':'fullHeight columns'
 			}).inject(canvasList);
-			
-			site.$instance = new BetSite(el,{
+
+			site.$instance = new BetSite[site.id.ucfirst()](el,{
 				data:site,
 				onListSports:function(instance){
 					this.findCommonSports();
+				}.bind(this),
+				onListLeagues:function(instance){
+					this.findCommonLeagues();
 				}.bind(this)
 			}).setChannel(this.$ably.channels.get(site.id)); 
 		}.bind(this));
@@ -74,6 +102,14 @@ var BetController = new Class({
 		}.bind(this));
 		return this;
 	},
+	getSite:function(siteId) {
+		var count = this.options.sites.length;
+		for(var i=0;i<count;i++){
+			if (this.options.sites[i].id==siteId){
+				return this.options.sites[i];
+			}
+		}
+	},
 	loadSports:function(){
 		console.log('Load Sports');
 		this.options.sites.each(function(site){
@@ -81,6 +117,8 @@ var BetController = new Class({
 		}.bind(this));
 	},
 	loadLeagues:function(sport){
+		this.containers.select('leagues');
+		console.log(sport);
 		this.options.sites.each(function(site){
 			var sportData = site.$instance.getSport(sport);
 			//console.log(sportData);
@@ -139,6 +177,100 @@ var BetController = new Class({
 					sportData.$row.addClass('filled green color-white');	
 				}
 			}.bind(this));
+		}.bind(this));
+	},
+	findCommonLeagues:function(){
+		console.log('Find Common Leagues');
+		this.$commonLeagueList.empty();
+		var global = [],
+			siteIndex = [],
+			leagueIndex = {};
+		this.options.sites.each(function(site){
+			if ($defined(site.$instance.$currentSport)) {
+				var sportId = site.$instance.$currentSport.id;
+				var index = site.$instance.getLeagueIndex();
+				
+				//console.log(sportId);
+				if (index.length) {
+					site.$instance.$leagues[sportId].each(function(league){
+						if ($defined(league.$row)) {
+							league.$row.setProperty('class','');
+						}
+					});
+					siteIndex.push(site.id);
+					leagueIndex[sportId] = index;
+					global.combine(index);	
+				}	
+			}
+			
+		}.bind(this));
+		
+		var common = [], 
+			siteCount = siteIndex.length;
+			
+		console.log(siteCount,global);
+		if (siteCount<2) return;
+		
+		global.each(function(league){
+			var hasCount = 0,
+				leagueCollection = new Array();
+			this.options.sites.each(function(site){
+				if (site.$instance.inLeagueIndex(league)) {
+					leagueCollection.push({
+						site:site.name,
+						siteId:site.id,
+						items:site.$instance.getLeaguesByIndex(league)
+					});
+					hasCount++;
+				}
+			}.bind(this));
+			
+			//console.log(league,hasCount);
+			if (hasCount==siteCount) {
+				common.push(league);
+				console.log(leagueCollection);
+				
+				var row = new Element('li').inject(this.$commonLeagueList);
+				this.applyTemplateData(row,this.options.templates.commonLeague,{
+					league:league.toUpperCase()
+				});
+				var leagueList = row.getElement('.leagueList'),
+					groupCollection = {};
+				leagueCollection.each(function(leagueData){
+					leagueData.items.each(function(leagueDefinition){
+						if (!$defined(groupCollection[leagueDefinition.group])) {
+							groupCollection[leagueDefinition.group] = [];
+						}
+						
+						groupCollection[leagueDefinition.group].push($merge(leagueDefinition,{siteId:leagueData.siteId}));
+						leagueDefinition.$row.addClass('filled green color-white');
+					}.bind(this));
+				}.bind(this));
+				//console.log(league,groupCollection);
+				//return;
+				var hasLeagues = false;
+				for(group in groupCollection){
+					if (groupCollection[group].length==siteCount) {
+						var row = new Element('li').inject(leagueList);
+						this.applyTemplateData(row,this.options.templates.leagueList,{group:group});
+						hasLeagues = true;
+						
+						var viewEvents = row.getElement('.viewEvents');
+						viewEvents.store('data',groupCollection[group]);
+						viewEvents.addEvent('click',function(e){
+							e.target.getParent().retrieve('data').each(function(leagueData){
+								var site = this.getSite(leagueData.siteId);
+								//console.log(leagueData.siteId,primaryLeague);
+								site.$instance.load('events',[leagueData.id]);
+							}.bind(this));
+						}.bind(this));
+					}
+				}
+				
+				if (!hasLeagues) {
+					row.destroy();
+				}
+			}
 		}.bind(this));
 	}
 });
@@ -278,7 +410,21 @@ var BetSite = new Class({
 					+'</div>'
 					//+'<i class="fa fa-chevron-right control active"></i>'
 					,
-						
+				marketList:'<ul class="selectList">'
+						+'<li class="header">'
+							+'<h2>{home}</h2>'
+							+'<h3 class="font bold">vs</h3>'
+							+'<h2>{away}</h2>'
+						+'</li>'
+					+'</ul>'
+					+'<div class="fullHeight border_top">'
+						+'<ul class="selectList marketList separated"></ul>'
+					+'</div>',	
+				marketItem:'<div class="padded">'
+						+'<div class="font bold">{name}</div>'
+						+'<div class="font">Group : {group}</div>'
+						+'<div class="font">Type : {typeText}</div>'
+					+'</div>'
 		}
 	},
 	initialize:function(container,options){
@@ -316,20 +462,23 @@ var BetSite = new Class({
 		this.$channel.subscribe('response',function(response){
 			var site = this.options.data;
 			console.log('Response Received from '+site.name);
-			
-			var command = response.data.command.toLowerCase();
+			var data = Json.decode(LZString.decompressFromUTF16(response.data));
+			var command = data.command.toLowerCase();
 			switch(command){
 				case 'sports':
-					this.setSports(response.data.result);
+					this.setSports(data.result);
 					break;
 				case 'leagues':
-					this.setLeagues(response.data.arguments[0],response.data.result);
+					this.setLeagues(data.arguments[0],data.result);
 					break;
 				case 'events':
-					this.setEvents(response.data.arguments[0],response.data.result);
+					this.setEvents(data.arguments[0],data.result);
+					break;
+				case 'markets':
+					this.setMarkets(data.arguments[0],data.result);
 					break;
 			}
-			console.log(command,response);
+			console.log(command,data);
 		}.bind(this));
 		
 		return this;
@@ -340,6 +489,7 @@ var BetSite = new Class({
 			case 'sports':
 			case 'leagues':
 			case 'events':
+			case 'markets':
 				this.applyTemplateData(this.body,this.options.templates.loading,this.options.data);
 				break;
 		}
@@ -394,8 +544,48 @@ var BetSite = new Class({
 		if (!$defined(this.$leagues)) {
 			this.$leagues = {};	
 		}
+		items.each(function(item){
+			this.initLeague(item);
+		}.bind(this));
 		this.$leagues[sportId] = items;
+		
+		//console.log(this.$leagues);
 		this.listLeagues(sportId);
+	},
+	initLeague:function(league){
+		$extend(league,{
+			group:league.group.length?league.group:'- Ungrouped -',
+			index:this.generateLeagueIndex(league)
+		});
+	},
+	generateLeagueIndex:function(league){
+		return [league.name.toLowerCase()];
+	},
+	getLeagueIndex:function(){
+		var idx = new Array();
+		if (!$defined(this.$currentSport)) return idx;
+		var sportId = this.$currentSport.id;
+		if (!$defined(this.$leagues[sportId])) return idx;
+		
+		this.$leagues[sportId].each(function(league){
+			idx.combine(league.index);
+		});
+		return idx;
+	},
+	inLeagueIndex:function(value){
+		return this.getLeagueIndex().contains(value); 
+	},
+	getLeaguesByIndex:function(index){
+		var leagues = new Array();
+		if (!$defined(this.$currentSport)) return leagues;
+		var sportId = this.$currentSport.id;
+		if (!$defined(this.$leagues[sportId])) return leagues;
+		this.$leagues[sportId].each(function(league){
+			if (league.index.contains(index)) {
+				leagues.push(league);
+			}
+		}.bind(this));
+		return leagues;
 	},
 	getLeagueById:function(sportId,id){
 		if (!$defined(this.$leagues[sportId])) return;
@@ -407,6 +597,7 @@ var BetSite = new Class({
 		}
 	},
 	listLeagues:function(sportId){
+		console.log(sportId);
 		if (!$defined(this.$leagues)) return;
 		this.$currentSport = this.getSportById(sportId);
 		this.applyTemplateData(this.body,this.options.templates.leagueList,this.$currentSport);
@@ -448,6 +639,15 @@ var BetSite = new Class({
 		this.$events = items;
 		this.listEvents(leagueId);
 	},
+	getEventById:function(eventId){
+		if (!$defined(this.$events[this.$currentLeague.id])) return;
+		var count = this.$events[this.$currentLeague.id].length;
+		for(var i=0;i<count;i++){
+			if (this.$events[this.$currentLeague.id][i].id==id){
+				return this.$events[this.$currentLeague.id][i];
+			}
+		}
+	},
 	listEvents:function(leagueId){
 		if (!$defined(this.$events)) return;
 		this.$currentLeague = this.getLeagueById(this.$currentSport.id,leagueId);
@@ -464,8 +664,160 @@ var BetSite = new Class({
 			});
 			ev.$row = new Element('li').inject(eventList);
 			this.applyTemplateData(ev.$row,this.options.templates.eventItem,ev);
+			ev.$row.addEvent('click',function(){
+				this.load('markets',[ev.id]);
+			}.bind(this));
 		}.bind(this));
 		this.fireEvent('onListEvents',[this]);
+	},
+	abbreviate:function(str){
+		var abbr = '';
+		str.split(' ').each(function(word){
+			abbr += word.charAt(0);
+		});
+		return abbr;
+	},
+	setMarkets:function(eventId,items){
+		if (!$defined(this.$markets)) {
+			this.$markets = {};	
+		}
+		items.each(function(item){
+			this.initMarket(item);
+		}.bind(this));
+		this.$markets[eventId] = items;
+		console.log(this.$markets);
+		this.listMarkets(eventId);
+	},
+	initMarket:function(item){
+		
+	},
+	listMarkets:function(eventId){
+		if (!$defined(this.$markets)) return;
+		this.$currentEvent = this.getEventById(eventId);
+		console.log(this.$currentLeague);
+		this.applyTemplateData(this.body,this.options.templates.marketList,this.$currentEvent);
+		$fullHeight(this.container);
+		
+		var marketList = this.body.getElement('.marketList');
+		this.$markets[eventId].each(function(market){
+			market.$row = new Element('li').inject(marketList);
+			this.applyTemplateData(market.$row,this.options.templates.marketItem,market);
+		}.bind(this));
+		this.fireEvent('onListMarkets',[this]);
+	}
+});
+
+BetSite.Betrebels = new Class({
+	Extends:BetSite,
+	initLeague:function(league){
+		this.parent(league);
+		league.group = league.group=='Republic of Korea'?'South Korea':league.group; 		
+	}
+});
+BetSite.Championsbet = new Class({
+	Extends:BetSite,
+	initLeague:function(league){
+		switch(league.group) {
+			case 'International Clubs':
+				league.group = 'World';
+				break;
+		}
+		
+		this.parent(league);
+		switch(league.name){
+			case 'Estonian-Latvian Basketball League':
+			case 'Euroleague':
+				league.group = 'Europe';
+				break;
+		} 		
+		if (league.name.test('UEFA','i')) {
+			league.group = 'Europe';
+		}
+		
+	},
+	generateLeagueIndex:function(league){
+		var name = league.name.toLowerCase();
+		var idx = new Array();
+		var parts = name.split(', ');
+		
+		//var wordCount = parts.length>1?name.split(' ').length:parts[1].split(' ').length;
+		var trueName = parts.length>1?parts[0]:name;
+		var wordCount = trueName.split(' ').length;
+		
+		idx.push(trueName);
+		if (wordCount>1) {
+			idx.push(this.abbreviate(trueName));
+		}
+		return idx;
+	},
+	initMarket:function(item){
+		switch(item.group){
+			case 'Main Markets':
+				item.group = 'Main';
+				break;
+		}
+	}
+});
+BetSite.Pinnacle = new Class({
+	Extends:BetSite,
+	initLeague:function(league){
+		var parts = league.name.split(' - ');
+		switch(parts[0]){
+			case 'UEFA':
+			case 'AFC':
+				league.name = parts.join(' ');
+				break;
+		}
+		switch(league.name) {
+			case 'Club Friendlies':
+				league.name = 'Club Friendly Games';
+				break;
+		}
+		if (league.group.length) {
+			this.parent(league);
+		} else {
+			var parts = league.name.split(' - ');
+			var trueName = parts.length>1?parts[1]:name;
+			
+			$extend(league,{
+				group:parts.length>1?parts[0]:'- Ungrouped -',
+				index:this.generateLeagueIndex(league)
+			});	
+		}		
+		switch(league.name){
+			case 'Estonian-Latvian Basketball League':
+				league.group = 'Europe';
+				break;
+		} 	
+		
+		switch(league.group){
+			case 'Korea':
+				league.group = 'South Korea';
+				break;
+			case 'UEFA':
+				league.group = 'Europe';
+				//league.name = 'UEFA '+league.name;
+				break;
+			case 'AFC':
+				league.group = 'Asia';
+				break;
+		}
+	},
+	generateLeagueIndex:function(league){
+		var name = league.name.toLowerCase();
+		var idx = new Array();
+		var parts = name.split(' - ');
+		
+		
+		//var wordCount = parts.length>1?name.split(' ').length:parts[1].split(' ').length;
+		var trueName = parts.length>1?parts[1]:name;
+		var wordCount = trueName.split(' ').length;
+		
+		idx.push(trueName);
+		if (wordCount>1) {
+			idx.push(this.abbreviate(trueName));
+		}
+		return idx;
 	}
 });
 

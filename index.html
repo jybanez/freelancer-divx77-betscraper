@@ -8,6 +8,7 @@
         <link rel="stylesheet" href="assets/css/common.css" />
         <link rel="stylesheet" href="assets/css/styles.css" />
         
+        <script type="text/javascript" src="assets/js/lz-string.js"></script>
         <script type="text/javascript" src="assets/js/scripts.js"></script>
         <script type="text/javascript" src="https://cdn.ably.io/lib/ably.min-1.js"></script>
         
@@ -16,32 +17,61 @@
     <body class="fullHeight">
         <div class="row fullHeight">
             <div class="width_300 columns fullHeight">
-                <div class="fullHeight">
-                    <ul class="selectList">
-                        <li class="header">
-                            <h2>Betting Sites</h2>
-                        </li>
-                    </ul>
-                    <div>
-                        <ul class="fieldList spaced separated siteList"><li></li></ul>    
-                    </div>
-                    <ul class="selectList">
-                        <li class="header">
-                            <h3>Commands</h3>
-                        </li>
-                        <li>
-                            <div class="btn primary rounded block appAction" rel="loadSports">
-                                <div>
-                                    <div class="padded">Load Sports</div>
-                                </div>
-                            </div>
-                        </li>
-                        <li class="header">
-                            <h2>Common Sports</h2>
-                        </li>
-                    </ul>    
+                <div class="fullHeight">  
                     <div class="fullHeight">
-                        <ul class="fieldList spaced commonSportList separated"></ul>
+                    	<div class="contentContainer active fullHeight" rel="sports">
+                    		<ul class="selectList">
+		                        <li class="header">
+		                            <h3>Commands</h3>
+		                        </li>
+		                        <li>
+		                            <div class="btn primary rounded block appAction" rel="loadSports">
+		                                <div>
+		                                    <div class="padded">Load Sports</div>
+		                                </div>
+		                            </div>
+		                        </li>
+		                        <li class="header">
+		                            <h2>Common Sports</h2>
+		                        </li>
+		                    </ul>
+		                    <div class="fullHeight">
+		                    	<ul class="fieldList spaced commonSportList separated"></ul>	
+		                    </div>
+                    	</div>
+                        <div class="contentContainer fullHeight" rel="leagues">
+                        	<ul class="selectList">
+                        		<li class="header">
+                        			<ul class="fieldList spaced">
+                        				<li class="containerAction" rel="sports">
+                        					<i class="fa fa-chevron-left"></i>
+                        					<h2>Back to Common Sports</h2>
+                        				</li>
+                        			</ul>
+                        		</li>
+                        		<li class="header">
+                        			<h2>Common Leagues</h2>
+                        		</li>
+                        	</ul>
+                        	<div class="fullHeight">
+                        		<ul class="fieldList spaced commonLeagueList separated"></ul>	
+                        	</div>
+                        </div>
+                        <div class="contentContainer fullHeight" rel="events">
+                        	<ul class="selectList">
+                        		<li class="header">
+                        			<ul class="fieldList spaced">
+                        				<li class="containerAction" rel="leagues">
+                        					<i class="fa fa-chevron-left"></i>
+                        					<h2>Back to Common Leagues</h2>
+                        				</li>
+                        			</ul>
+                        		</li>
+                        	</ul>
+                        	<div class="fullHeight">
+                        		CALCULATOR HERE	
+                        	</div>
+                        </div>
                     </div>
                 </div>
                 
