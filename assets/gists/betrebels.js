@@ -72,8 +72,8 @@
         };
 
         this.getRequestQuery = function(path){
-            console.log(window.BetRebelQueries);
-            return window.BetRebelQueries[path];
+            console.log(unsafeWindow.window.BetRebelQueries);
+            return unsafeWindow.window.BetRebelQueries[path];
         };
 
         this.request = function(path,options){
@@ -300,15 +300,15 @@
         head.appendChild(script);
     };
     
-    window.BetRebelQueries = {};
-    var oldXHROpen = window.XMLHttpRequest.prototype.open;
-    window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+    unsafeWindow.window.BetRebelQueries = {};
+    var oldXHROpen = unsafeWindow.window.XMLHttpRequest.prototype.open;
+    unsafeWindow.window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
         // do something with the method, url and etc.
         var uri = new URI(url);
         //console.log(url,uri);
         //console.log(uri.path());
 
-        window.BetRebelQueries[uri.path()] = parseQueryString(uri.query());
+        unsafeWindow.window.BetRebelQueries[uri.path()] = parseQueryString(uri.query());
         switch(uri.path()){
             case '/Sportsbook/GetAllSports':
                 console.log('All Sports Menu Requested...');
