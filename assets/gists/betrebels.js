@@ -1,44 +1,6 @@
 (function() {
     'use strict';
     
-    window.BetRebelQueries = {};
-    
-    var oldXHROpen = window.XMLHttpRequest.prototype.open;
-    window.XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
-        // do something with the method, url and etc.
-        var uri = new URI(url);
-        //console.log(url,uri);
-        //console.log(uri.path());
-
-        window.BetRebelQueries[uri.path()] = parseQueryString(uri.query());
-        switch(uri.path()){
-            case '/Sportsbook/GetAllSports':
-                console.log('All Sports Menu Requested...');
-                //console.log(url,uri);
-                //console.log('PATH',uri.path());
-                //console.log('QUERY',uri.query());
-
-                this.addEventListener('load', function() {
-                    // do something with the response text
-                    console.log('All Sports Menu Data...');
-                    console.log(JSON.parse(this.responseText));
-                });
-                break;
-            case '/SportsBook/GetMenuBySport':
-                var params = uri.search(true);
-                console.log('Specific Sport Menu Requested...');
-                console.log('Sport ID Requested : '+params.sportId);
-                this.addEventListener('load', function() {
-                    // do something with the response text
-                    console.log('Specific Sport Menu Data...');
-                    console.log(JSON.parse(this.responseText));
-                });
-                break;
-        }
-
-        return oldXHROpen.apply(this, arguments);
-    };
-    
     function typeOf(item){
         if (item == null) return 'null';
         if (item.$family != null) return item.$family();
