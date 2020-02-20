@@ -61,7 +61,8 @@
         this.name = 'Bet Rebels';
         this.ablyKey = '1WanEw.nso3Pg:PSRclZWpBMfJOVAn'; // Production
         this.ablyKey = '1WanEw.2_quEA:SeRdHuyTS7B0UR4Y'; // Local Dev
-
+		this.ablyKey = window.ablyKey;
+		
         this.domain = 'https://sb1capi-altenar.biahosted.com';
 
         this.requestQueries = {};

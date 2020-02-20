@@ -48,11 +48,12 @@ var BetController = new Class({
 				+'</div>'
 				
 		},
-		ablyKey:'1WanEw.nso3Pg:PSRclZWpBMfJOVAn', // Production
+		//ablyKey:'1WanEw.nso3Pg:PSRclZWpBMfJOVAn', // Production
         ablyKey:'1WanEw.2_quEA:SeRdHuyTS7B0UR4Y'  // Local Dev
 	},
 	initialize:function(options){
 		this.setOptions(options);
+		this.options.ablyKey = window.AblyKey;
 		var container = document.id(window.document.body);
 		var canvasList = container.getElement('.canvasList');
 		this.scanActions(container);
@@ -65,6 +66,13 @@ var BetController = new Class({
 						break;
 					case 'leagues':
 						this.$commonLeagueList = el.getElement('.commonLeagueList');
+						break;
+					case 'events':
+						this.$calculatorOptions = el.getElement('.calculatorOptions');
+						new TPH.SelectOptions(this.$calculatorOptions);
+						this.$calculatorContainer = el.getElement('.calculatorContainer');
+						var calc = new BetCalculator(this.$calculatorContainer);
+						calc.render();
 						break;
 				}
 			}.bind(this),
@@ -82,14 +90,24 @@ var BetController = new Class({
 			}).inject(canvasList);
 
 			site.$instance = new BetSite[site.id.ucfirst()](el,{
-				data:site,
+				data:site
+			}).setChannel(this.$ably.channels.get(site.id)); 
+			site.$instance.addEvents({
 				onListSports:function(instance){
 					this.findCommonSports();
 				}.bind(this),
 				onListLeagues:function(instance){
 					this.findCommonLeagues();
+				}.bind(this),
+				onListEvents:function(instance){
+					console.log('onListEvents');
+				}.bind(this),
+				onListMarkets:function(instance){
+					console.log('onListMarkets');
+					//this.checkForCalculator();
 				}.bind(this)
-			}).setChannel(this.$ably.channels.get(site.id)); 
+			});
+			console.log(site.$instance);
 		}.bind(this));
 		(function(){
 			window.fireEvent('resize');	
@@ -122,8 +140,9 @@ var BetController = new Class({
 		console.log(sport);
 		this.options.sites.each(function(site){
 			var sportData = site.$instance.getSport(sport);
-			//console.log(sportData);
-			site.$instance.load('leagues',[sportData.id]);
+			if ($defined(sportData)) {
+				site.$instance.load('leagues',[sportData.id]);	
+			}
 		}.bind(this));
 	},
 	findCommonSports:function(){
@@ -259,6 +278,7 @@ var BetController = new Class({
 						var viewEvents = row.getElement('.viewEvents');
 						viewEvents.store('data',groupCollection[group]);
 						viewEvents.addEvent('click',function(e){
+							this.containers.select('events');
 							e.target.getParent().retrieve('data').each(function(leagueData){
 								var site = this.getSite(leagueData.siteId);
 								//console.log(leagueData.siteId,primaryLeague);
@@ -272,6 +292,12 @@ var BetController = new Class({
 					row.destroy();
 				}
 			}
+		}.bind(this));
+	},
+	checkForCalculator:function(){
+		console.log('check for calculator');
+		this.options.sites.each(function(site){
+			console.log(site.$instance.$currentEvent);
 		}.bind(this));
 	}
 });
@@ -369,54 +395,6 @@ var BetSite = new Class({
 									+'<h3 class="font bold">vs</h3>'
 									+'<h2>{away}</h2>'
 								+'</div>'
-							+'</li>'
-							+'<li class="padded">'
-								+'<ul class="fieldList spaced">'
-									+'<li class="header">'
-										+'<div>1</div>'
-										+'<div>X</div>'
-										+'<div>2</div>'
-										+'<div></div>'
-									+'</li>'
-									+'<li class="align_center">'
-										+'<div class="padded font bold">{market_1}</div>'
-										+'<div class="padded font bold">{market_x}</div>'
-										+'<div class="padded font bold">{market_2}</div>'
-										+'<div class="padded font bold">{sum}</div>'
-									+'</li>'
-								+'</ul>'
-								+'<ul class="fieldList spaced">'
-									+'<li class="header">'
-										+'<div class="six">O/U {special}</div>'
-										+'<div>GG/NG</div>'
-									+'</li>'
-									+'<li class="align_center">'
-										+'<div class="">'
-											+'<ul class="fieldList spaced separated fixed">'
-												+'<li>'
-													+'<div>O</div>'
-													+'<div class="font bold">{market_over}</div>'
-												+'</li>'
-												+'<li>'
-													+'<div>U</div>'
-													+'<div class="font bold">{market_under}</div>'
-												+'</li>'
-											+'</ul>'
-										+'</div>'
-										+'<div class="">'
-											+'<ul class="fieldList spaced separated fixed">'
-												+'<li>'
-													+'<div>GG</div>'
-													+'<div class="font bold">{market_gg}</div>'
-												+'</li>'
-												+'<li>'
-													+'<div>NG</div>'
-													+'<div class="font bold">{market_ng}</div>'
-												+'</li>'
-											+'</ul>'
-										+'</div>'
-									+'</li>'
-								+'</ul>'
 							+'</li>'
 						+'</ul>'						
 					+'</div>'
@@ -527,7 +505,7 @@ var BetSite = new Class({
 			console.log('Response Received from '+site.name);
 			
 			var data = Json.decode(LZString.decompressFromUTF16(response.data));
-			console.log(data);
+			//console.log(data);
 			var command = data.command.toLowerCase();
 			switch(command){
 				case 'sports':
@@ -543,7 +521,7 @@ var BetSite = new Class({
 					this.setMarkets(data.arguments[0],data.result);
 					break;
 			}
-			console.log(command,data);
+			//console.log(command,data);
 		}.bind(this));
 		
 		return this;
@@ -704,29 +682,29 @@ var BetSite = new Class({
 	setEvents:function(leagueId,items){
 		this.$currentLeague = this.getLeagueById(leagueId);
 		console.log(this.$currentSport,leagueId,this.$currentLeague);
-		this.$events = items;
+		this.$leagueEvents = items;
 		this.listEvents();
 	},
 	getEventById:function(eventId){
-		if (!$defined(this.$events)) return;
+		if (!$defined(this.$leagueEvents)) return;
 		//console.log(eventId,this.$events);
-		var count = this.$events.length;
+		var count = this.$leagueEvents.length;
 		for(var i=0;i<count;i++){
-			if (this.$events[i].id==eventId){
-				return this.$events[i];
+			if (this.$leagueEvents[i].id==eventId){
+				return this.$leagueEvents[i];
 			}
 		}
 	},
 	listEvents:function(){
-		if (!$defined(this.$events)) return;
-		
+		if (!$defined(this.$leagueEvents)) return;
+		this.$currentEvent = null;
 		this.applyTemplateData(this.body,this.options.templates.eventList,$merge(this.$currentLeague,{
 			sport:this.$currentSport.name
 		}));
 		$fullHeight(this.container);
 		
 		var eventList = this.body.getElement('.eventList');
-		this.$events.each(function(ev){
+		this.$leagueEvents.each(function(ev){
 			$extend(ev,{
 				schedule_text:new Date().parse(ev.schedule).format('db')
 			});
@@ -755,8 +733,8 @@ var BetSite = new Class({
 			this.initMarket(item);
 		}.bind(this));
 		this.$markets = items;
-		console.log(this.$markets);
-		this.listMarkets(eventId);
+		//console.log(this.$markets);
+		this.listMarkets();
 	},
 	initMarket:function(item){
 		if (!$defined(item.type)) {
@@ -773,14 +751,14 @@ var BetSite = new Class({
 	},
 	listMarkets:function(){
 		if (!$defined(this.$markets)) return;
+		//console.log(this.$currentEvent);
 		this.applyTemplateData(this.body,this.options.templates.marketList,this.$currentEvent);
 		$fullHeight(this.container);
 		
 		this.$marketList = this.body.getElement('.marketList');
 		this.$marketGroupSelector = this.body.getElement('.groupSelector');
 		this.$marketGroupSelector.addEvent('change',function(){
-			this.updateOddTypes();
-			this.updateMarketList();
+			this.updateOddTypes().updateMarketList();
 		}.bind(this));
 		this.$oddTypeSelector = this.body.getElement('.typeSelector');
 		this.$oddTypeSelector.addEvent('change',function(){
@@ -795,10 +773,12 @@ var BetSite = new Class({
 		groupIndex.sort().each(function(group){
 			new Element('option',{value:group}).set('html',group).inject(this.$marketGroupSelector);
 		}.bind(this));
-		this.updateOddTypes();
-		this.updateMarketList();
-		this.scanActions(this.body);
+		
+		
 		this.fireEvent('onListMarkets',[this]);
+
+		this.scanActions(this.body);
+		this.updateOddTypes().updateMarketList();
 	},
 	updateOddTypes:function(){
 		var currentGroup = this.$marketGroupSelector.get('value'),
@@ -808,17 +788,18 @@ var BetSite = new Class({
 		this.$markets.each(function(market){
 			if (!typeIndex.contains(market.type) && (!currentGroup.length || market.group==currentGroup)) {
 				typeIndex.push(market.type);
-				typeText[market.type] = market.typeText;
+				typeText[market.type] = market.type;
 			}
 		}.bind(this));
 		typeIndex.sort().each(function(type){
 			new Element('option',{value:type}).set('html',typeText[type]).inject(this.$oddTypeSelector);
 		}.bind(this));
+		return this;
 	},
 	updateMarketList:function(){
 		var currentGroup = this.$marketGroupSelector.get('value'),
 			currentType = this.$oddTypeSelector.get('value');
-		console.log(currentGroup,currentType);
+		//console.log(currentGroup,currentType);
 		this.$marketList.empty();
 		this.$markets.each(function(market){
 			//console.log(market.name,market.group,currentGroup);
@@ -854,6 +835,7 @@ var BetSite = new Class({
 				}
 			}
 		}.bind(this));
+		return this;
 	}
 });
 
@@ -971,6 +953,128 @@ BetSite.Pinnacle = new Class({
 		return idx;
 	}
 });
+
+var BetCalculator = new Class({
+	Implements:[Events,Options,TPH.Implementors.TemplateData],
+	options:{
+		outcome:2,
+		formula:'1-2',
+		label:'Win 1-Win 2',
+		templates:{
+			//header:'<div>Odd</div><div>Bet</div><div>Profit</div>',
+			//footer:'<div></div><div>Bet</div><div></div>',
+			line:'<div class="inputSpace grey"><select class="oddSelection"><option value="">{defaultLabel}</option></select></div>'
+				+'<ul class="fieldList spaced fixed">'
+					+'<li>'
+						+'<div class="vertical_top">'
+							+'<dl class="inputList">'
+								+'<dt><div class="field">Odds</div></dt>'
+								+'<dd><input type="number" step=".01" /></dd>'
+								+'<dt><div class="field">Commission</div></dt>'
+								+'<dd>'
+									+'<ul class="fieldList spaced">'
+										+'<li>'
+											+'<div class="width_50">'
+												+'<input type="number" step=".01" />'
+											+'</div>'
+											+'<i class="fa fa-percent control"></i>'
+										+'</li>'
+									+'</ul>'
+								+'</dd>'
+							+'</dl>'
+						+'</div>'
+						+'<div class="vertical_top">'
+							+'<dl class="inputList">'
+								+'<dt><div class="field">Bet</dt>'
+								+'<dd><input type="number" step=".01" /></dd>'
+								+'<dt><div class="field">Currency</dt>'
+								+'<dd><select></select></dd>'
+							+'</dl>'
+						+'</div>'
+						+'<div class="vertical_top">'
+							+'<dl class="inputList">'
+								+'<dt><div class="field">Profit</div></dt>'
+							+'</dl>'
+						+'</div>'
+					+'</li>'
+				+'</ul>'
+				
+		}
+	},
+	initialize:function(container,options){
+		this.container = container;
+		this.setOptions(options);
+		
+		this.$markets = new Array();
+	},
+	addMarket:function(item){
+		this.$markets.push(item);
+	},
+	clearMarkets:function(){
+		this.$markets.empty();
+	},
+	render:function(){
+		var list = new Element('ul',{'class':'selectList separated'}).inject(this.container.empty());
+		//this.applyTemplateData(new Element('li').inject(list),this.options.templates.header,{});
+		
+		for(var i=0;i<this.options.outcome;i++) {
+			this.applyTemplateData(new Element('li').inject(list),this.options.templates.line,{
+				index:i,
+				defaultLabel:'Select Event from Target Site '+(i+1)
+			});	
+		}
+		
+		//this.applyTemplateData(new Element('li').inject(list),this.options.templates.footer,{});
+	}
+});
+
+var BetCalculators = {
+	'1-2':new Class({
+		Extends:BetCalculator,
+		options:{
+			outcome:2,
+			formula:'1-2',
+			label:'Win 1-Win 2',
+			type:'total'
+		}
+	}),
+	'1-x2':new Class({
+		Extends:BetCalculator,
+		options:{
+			outcome:2,
+			formula:'1-x2',
+			label:'1-x2',
+			type:'1x2'
+		}
+	}),
+	'12-2':new Class({
+		Extends:BetCalculator,
+		options:{
+			outcome:2,
+			formula:'12-2',
+			label:'12-2',
+			type:'total'
+		}
+	}),
+	'h1-h2':new Class({
+		Extends:BetCalculator,
+		options:{
+			outcome:2,
+			formula:'h1-h2',
+			label:'h1-h2',
+			type:'total'
+		}
+	}),
+	'over-under':new Class({
+		Extends:BetCalculator,
+		options:{
+			outcome:2,
+			formula:'over-under',
+			label:'Over-Under',
+			type:'ou'
+		}
+	})
+};
 
 window.addEvent('domready',function(){
 	new BetController();	

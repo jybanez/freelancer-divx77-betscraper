@@ -43,6 +43,7 @@
 
         this.ablyKey = '1WanEw.nso3Pg:PSRclZWpBMfJOVAn'; // Production
         this.ablyKey = '1WanEw.2_quEA:SeRdHuyTS7B0UR4Y'; // Local Dev
+		this.ablyKey = window.ablyKey;
 
         this.domain = 'https://guest.api.arcadia.pinnacle.com';
         this.apiKey = 'CmX2KcMrXuFmNg6YFbmTxE0y9CIrOi0R';
@@ -336,6 +337,9 @@
                                 };
                             }
                             market.prices.forEach(function(price){
+                            	if (!$defined(price.designation)) {
+                            		console.log(price);
+                            	}
                                 var itemName = price.designation;
                                 if (price.points!=null) {
                                     itemName += ' '+price.points;

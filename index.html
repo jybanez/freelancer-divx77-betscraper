@@ -9,6 +9,7 @@
         <link rel="stylesheet" href="assets/css/styles.css" />
         
         <script type="text/javascript" src="assets/js/lz-string.js"></script>
+        <script type="text/javascript" src="assets/js/key.js"></script>
         <script type="text/javascript" src="assets/js/scripts.js"></script>
         <script type="text/javascript" src="https://cdn.ably.io/lib/ably.min-1.js"></script>
         
@@ -67,10 +68,96 @@
                         				</li>
                         			</ul>
                         		</li>
+                        		<li class="header calculatorOptions">
+                        			<ul class="fieldList spaced">
+                        				<li>
+                        					<label>Outcome</label>
+                        					<div>
+                        						<div class="inputSpace">
+                        							<select name="outcome">
+                        								<option value="2">2</option>
+                        								<option value="3">3</option>
+                        							</select>
+                        						</div>
+                        					</div>
+                        				</li>
+                        				<li>
+                        					<label>Formula</label>
+                        					<div>
+                        						<div class="inputSpace selectOption" rel="outcome" rev="2">
+                        							<select name="formula">
+                        								<option value="0">Win 1 - Win 2</option>
+                        								<option value="1">1 - X2</option>
+                        								<option value="2">12 - 2</option>
+                        								<option value="3">H1() - H2()</option>
+                        								<option value="4">Over - Under</option>
+                        							</select>
+                        						</div>
+                        						<div class="inputSpace selectOption" rel="outcome" rev="3">
+                        							<select name="formula">
+                        								<option value="5">1 - X - 2</option>
+                        								<option value="6">H1(0) - X - 2</option>
+                        								<option value="7">H2(0) - X - 1</option>
+                        								<option value="8">H1(0) - X2 - 2</option>
+                        								<option value="9">H2(0) - 1X - 1</option>
+                        								<option value="10">Over 2 - Under 2.5 - Under 1.5</option>
+                        								<option value="11">Under 2 - Over 1.5 - Over 2.5</option>
+                        								<option value="12">H1(−0.25) - X - 2</option>
+                        								<option value="13">H2(−0.25) - X - 1</option>
+                        								<option value="14">H1(−0.25) - X2 - 2</option>
+                        								<option value="15">H2(−0.25) - 1X - 1</option>
+                        								<option value="16">Over 2.25 - Under 2.5 - Under 1.5</option>
+                        								<option value="17">Under 1.75 - Over 1.5 - Over 2.5</option>
+                        								<option value="18">H1(+0.25) - X - 2</option>
+                        								<option value="19">H2(+0.25) - X - 1</option>
+                        								<option value="20">H1(+0.25) - X2 - 2</option>
+                        								<option value="21">H2(+0.25) - 1X - 1</option>
+                        								<option value="22">Over 1.75 - Under 2.5 - Under 1.5</option>
+                        								<option value="23">Under 2.25 - Over 1.5 - Over 2.5</option>
+                        								<option value="24">H1(−0.25) - X - H2(0)</option>
+                        								<option value="25">H2(−0.25) - X - H1(0)</option>
+                        								<option value="26">H1(−0.25) - X2 - H2(0)</option>
+                        								<option value="27">H2(−0.25) - 1X - H1(0)</option>
+                        								<option value="28">Over 1.75 - Under 1.5 - Under 2</option>
+                        								<option value="29">H1(−0.25) - X - H2(−0.25)</option>
+                        								<option value="30">H1(−0.25) - X2 - H2(−0.25)</option>
+                        								<option value="31">H2(−0.25) - 1X - H1(−0.25)</option>
+                        								<option value="32">Over 2.25 - Under 2.5 - Under 1.75</option>
+                        								<option value="33">H1(0) - H2(+0.25) - 2</option>
+                        								<option value="34">H2(0) - H1(+0.25) - 1</option>
+                        								<option value="35">Over 2 - Under 2.25 - Under 1.5</option>
+                        								<option value="36">Under 2 - Over 1.75 - Over 2.5</option>
+                        								<option value="37">H1(0) - X2 - H2(−0.25)</option>
+                        								<option value="38">H2(0) - 1X - H1(−0.25)</option>
+                        								<option value="39">Over 2 - Under 2.5 - Under 1.75</option>
+                        								<option value="40">Under 2 - Over 1.5 - Over 2.25</option>
+                        								<option value="41">H1(+0.25) - H2(0) - 2</option>
+                        								<option value="42">H2(+0.25) - H1(0) - 1</option>
+                        								<option value="43">Over 1.75 - Under 2 - Under 1.5</option>
+                        								<option value="44">1X - 12 - X2</option>
+                        								<option value="45">H1(+0.25) - 12 - X2</option>
+                        								<option value="46">H2(+0.25) - 12 - 1X</option>
+                        								<option value="47">H1(+0.25) - 12 - H2(+0.25)</option>
+                        								<option value="48">H1(0) - 12 - X2</option>
+                        								<option value="49">H2(0) - 12 - 1X</option>
+                        								<option value="50">H1(0) - 12 - H2(+0.25)</option>
+                        								<option value="51">H2(0) - 12 - H1(+0.25)</option>
+                        								<option value="52">Under 2.25 - Over 1.75 - Over 2.5</option>
+                        							</select>
+                        						</div>
+                        					</div>
+                        				</li>
+                        			</ul>
+                        		</li>
                         	</ul>
                         	<div class="fullHeight">
-                        		CALCULATOR HERE	
+                        		<div class="calculatorContainer"></div>	
                         	</div>
+                        	<ul class="selectList">
+                        		<li class="header">
+                        			<div class="padded filled red color-white">Select same events/games from atleast 2 different sites to load the Calculator...</div>
+                        		</li>
+                        	</ul>
                         </div>
                     </div>
                 </div>

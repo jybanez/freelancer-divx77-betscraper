@@ -23,7 +23,8 @@
         this.name = 'Champions Bet';
         this.ablyKey = '1WanEw.nso3Pg:PSRclZWpBMfJOVAn'; // Production
         this.ablyKey = '1WanEw.2_quEA:SeRdHuyTS7B0UR4Y'; // Local Dev
-
+		this.ablyKey = window.ablyKey;
+		
         this.domain = 'https://sports1.championsbet.net';
         this.token = getCookie('XSRF-TOKEN');
 
